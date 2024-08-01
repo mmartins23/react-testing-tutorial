@@ -1,6 +1,10 @@
-const Greet = () => {
+type GreetProps = {
+    name?: string,
+}
+
+const Greet = ({name}: GreetProps) => {
   return (
-    <p>Greet</p>
+    <p>Hello {name}</p>
   )
 }
 
