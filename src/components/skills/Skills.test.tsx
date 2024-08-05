@@ -11,7 +11,7 @@ describe("Skills", () => {
     })
 
     test("renders a list of skills", () => {
-        render(<Skills skills={skills}/>)
+        render(<Skills skills={skills} />)
         const listItemElements = screen.getAllByRole('listitem');
         expect(listItemElements).toHaveLength(skills.length);
     })
@@ -25,10 +25,21 @@ describe("Skills", () => {
     })
 
     test("Start learning button is not rendered", () => {
-        render(<Skills skills={skills}/>)
+        render(<Skills skills={skills} />)
         const startLearningButton = screen.queryByRole("button", {
             name: "Start Learning",
         })
         expect(startLearningButton).not.toBeInTheDocument();
+    })
+
+    test("Start learning button is eventually displayed", async () => {
+        render(<Skills skills={[]} />);
+        const startLearningButton = await screen.findByRole('button', {
+            name: "Start learning",
+        },
+            {
+                timeout: 2000,
+            })
+        expect(startLearningButton).toBeInTheDocument();
     })
 })
