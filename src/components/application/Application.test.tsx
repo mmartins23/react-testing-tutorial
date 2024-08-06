@@ -55,7 +55,8 @@ describe('Application', () => {
         const termsElement2 = screen.getByLabelText('I agree to the terms and conditions')
         expect(termsElement2).toBeInTheDocument()
 
-        const submitElement = screen.getByRole('button')
-        expect(submitElement).toBeInTheDocument()
+        const submitButtonElement = screen.getByRole('button')
+        expect(submitButtonElement).toBeInTheDocument()
+        expect(submitButtonElement).toBeDisabled()
     });
 });
