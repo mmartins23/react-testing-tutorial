@@ -1,84 +1,117 @@
 ### Mocking Functions in React Testing
 
-Mocking functions is a common practice in React testing to simulate the behavior of external dependencies or functions that the component relies on. This allows you to test the component in isolation without depending on external services, APIs, or other side effects.
-
-### Why Mock Functions?
-
-- **Isolation**: Test components without relying on actual implementations of dependencies.
-- **Control**: Control the behavior of dependencies to simulate various scenarios (e.g., success, failure).
-- **Performance**: Avoid slow operations like network requests.
-- **Predictability**: Ensure tests are deterministic and not affected by external factors.
+Mocking functions in React testing is a technique used to simulate the behavior of real functions without invoking their actual implementations. This is especially useful when you want to test how components interact with functions, such as event handlers or API calls, without performing the actual operations those functions might do.
 
 ### Example Explanation
 
-#### Component: `Users`
+Let's break down the provided component and tests:
+
+#### Component: `CounterTwo`
 
 ```javascript
-import { useState, useEffect } from 'react'
+import { CounterTwoProps } from './CounterTwo.types'
 
-export const Users = () => {
-  const [users, setUsers] = useState<string[]>([])
-  const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    fetch('https://jsonplaceholder.typicode.com/users')
-      .then((res) => res.json())
-      .then((data) => setUsers(data.map((user: { name: string }) => user.name)))
-      .catch(() => setError('Error fetching users'))
-  }, [])
-
+export const CounterTwo = (props: CounterTwoProps) => {
   return (
     <div>
-      <h1>Users</h1>
-      {error && <p>{error}</p>}
-      <ul>
-        {users.map((user) => (
-          <li key={user}>{user}</li>
-        ))}
-      </ul>
+      <h1>Counter Two</h1>
+      <p>{props.count}</p>
+      {props.handleIncrement && (
+        <button onClick={props.handleIncrement}>Increment</button>
+      )}
+      {props.handleDecrement && (
+        <button onClick={props.handleDecrement}>Decrement</button>
+      )}
     </div>
   )
 }
 ```
 
-- **State Management**: Uses `useState` to manage `users` and `error`.
-- **Side Effects**: Uses `useEffect` to fetch data from an API when the component mounts.
-- **Rendering**: Displays a list of user names or an error message.
+- **Props**: The `CounterTwo` component accepts `count`, `handleIncrement`, and `handleDecrement` as props.
+- **Render**: It displays the count and conditionally renders "Increment" and "Decrement" buttons if the respective handlers are provided.
+- **Event Handlers**: When the buttons are clicked, they call the provided handler functions.
 
-#### Test: `Users`
+#### Tests for `CounterTwo`
 
 ```javascript
 import { render, screen } from '@testing-library/react'
-import { Users } from './Users'
+import user from '@testing-library/user-event'
+import { CounterTwo } from './CounterTwo'
 
-describe('Users', () => {
-  test('renders correctly', () => {
-    render(<Users />)
-    const textElement = screen.getByText('Users')
+test('renders correctly', () => {
+    render(<CounterTwo count={0} />)
+    const textElement = screen.getByText('Counter Two')
     expect(textElement).toBeInTheDocument()
-  })
+})
+
+test('handlers are called', async () => {
+    user.setup()
+    const incrementHandler = jest.fn() // Mock function for increment handler
+    const decrementHandler = jest.fn() // Mock function for decrement handler
+    render(
+        <CounterTwo
+            count={0}
+            handleIncrement={incrementHandler}
+            handleDecrement={decrementHandler}
+        />
+    )
+    const incrementButton = screen.getByRole('button', { name: 'Increment' })
+    const decrementButton = screen.getByRole('button', { name: 'Decrement' })
+    await user.click(incrementButton) // Simulate user clicking increment button
+    await user.click(decrementButton) // Simulate user clicking decrement button
+    expect(incrementHandler).toHaveBeenCalledTimes(1) // Assert increment handler was called once
+    expect(decrementHandler).toHaveBeenCalledTimes(1) // Assert decrement handler was called once
 })
 ```
 
-- **Basic Rendering Test**: Checks if the "Users" heading is rendered correctly.
+- **Render Test**:
+  - Renders the `CounterTwo` component with `count` set to 0.
+  - Verifies that the text "Counter Two" is in the document.
 
-### Mocking the Fetch API
+- **Handlers Test**:
+  - **Mock Functions**: Uses `jest.fn()` to create mock functions for `handleIncrement` and `handleDecrement`.
+  - **Render**: Renders `CounterTwo` with the mock functions passed as props.
+  - **Simulate Clicks**: Uses `user.click` to simulate user interactions with the buttons.
+  - **Assertions**: 
+    - Checks that `incrementHandler` is called exactly once when the increment button is clicked.
+    - Checks that `decrementHandler` is called exactly once when the decrement button is clicked.
 
-To properly test the `Users` component, especially the asynchronous data fetching, we should mock the `fetch` function. This allows us to control the data returned by the API and simulate different scenarios (e.g., successful fetch, fetch error).
+### How Act Was Used
 
-#### Example with Mocked Fetch
+In this example, `act` is not explicitly used in the provided code because `user-event` handles wrapping the updates in `act` for you. However, when working with state updates in your own hooks or components, wrapping those updates in `act` ensures that all updates related to rendering and state changes are applied before assertions are made. 
 
-1. **Setup and Teardown**:
-   - Use `beforeEach` and `afterEach` to mock the global `fetch` function before each test and reset it after each test to avoid interference between tests.
+Here's how you would manually use `act` if you were not using `user-event`:
 
-2. **Successful Fetch Test**:
-   - Mock the `fetch` function to resolve with a list of mock users.
-   - Render the `Users` component and wait for the user list items to be rendered.
-   - Assert that the correct number of list items are displayed.
+```javascript
+import { render, screen } from '@testing-library/react'
+import user from '@testing-library/user-event'
+import { CounterTwo } from './CounterTwo'
+import { act } from 'react-dom/test-utils'
 
-3. **Fetch Failure Test**:
-   - Mock the `fetch` function to reject with an error.
-   - Render the `Users` component and wait for the error message to be displayed.
-   - Assert that the error message is rendered.
+test('handlers are called', async () => {
+    user.setup()
+    const incrementHandler = jest.fn()
+    const decrementHandler = jest.fn()
+    render(
+        <CounterTwo
+            count={0}
+            handleIncrement={incrementHandler}
+            handleDecrement={decrementHandler}
+        />
+    )
+    const incrementButton = screen.getByRole('button', { name: 'Increment' })
+    const decrementButton = screen.getByRole('button', { name: 'Decrement' })
 
-These steps ensure that your tests are reliable, fast, and focused on the component's functionality without being affected by external dependencies.
+    await act(async () => {
+        await user.click(incrementButton)
+        await user.click(decrementButton)
+    })
+    
+    expect(incrementHandler).toHaveBeenCalledTimes(1)
+    expect(decrementHandler).toHaveBeenCalledTimes(1)
+})
+```
+
+### Summary
+
+Mocking functions allows you to test the interaction between components and their event handlers without performing the actual operations those handlers would do. The provided example demonstrates how to mock event handlers and verify that they are called correctly using Jest and React Testing Library.
